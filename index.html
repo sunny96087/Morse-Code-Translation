@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>摩斯密碼翻譯器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body
+    class="min-h-screen bg-[#265195] flex justify-center items-center p-4 font-['Noto_Sans_TC'] overflow-hidden"
+  >
+    <!-- 背景裝飾 -->
+    <div class="absolute text-white text-[500px] font-black opacity-10">
+      MORSE CODE
+    </div>
+
+    <!-- 主要內容 -->
+    <div class="flex flex-col md:flex-row w-full max-w-[900px] relative z-10">
+      <!-- 左側面板 -->
+      <div class="md:flex-[5] bg-white p-8 shadow-lg rounded-lg text-[#292B73]">
+        <h3 class="text-center font-normal text-[20px]">
+          Morse Code Translation
+        </h3>
+        <h1 class="text-center font-bold mb-8 text-[32px]">摩斯密碼翻譯器</h1>
+
+        <textarea
+          id="input"
+          rows="4"
+          placeholder="請輸入英文字母、數字或斜線(/)"
+          class="w-full p-3 text-xl tracking-wider outline-none border-2 border-black/30 focus:border-[#292B73]"
+        ></textarea>
+
+        <div
+          class="text-2xl font-black text-center transform transition-transform duration-500"
+          id="symbolArrow"
+        >
+          ⇵
+        </div>
+
+        <textarea
+          id="output"
+          rows="4"
+          placeholder="請輸入摩斯密碼 (. - 空格)"
+          class="w-full p-3 text-xl tracking-wider outline-none border-2 border-black/30 focus:border-[#292B73]"
+        ></textarea>
+
+        <!-- 虛擬鍵盤切換按鈕和鍵盤區域 -->
+        <div class="relative">
+          <button
+            id="keyboardToggle"
+            class="ml-auto block mt-2 p-1 text-[#292B73] hover:opacity-80 text-[24px]"
+          >
+            ⌨️
+          </button>
+
+          <div
+            id="virtualKeyboard"
+            class="hidden absolute top-1/2 -translate-y-1/2 right-[48px] mt-1 bg-white shadow-lg rounded-lg border border-gray-200 z-10"
+          >
+            <div class="flex p-2 space-x-2">
+              <button
+                class="virtual-key px-4 py-2 bg-[#292B73] text-white rounded hover:opacity-80"
+                data-key="."
+              >
+                .
+              </button>
+              <button
+                class="virtual-key px-4 py-2 bg-[#292B73] text-white rounded hover:opacity-80"
+                data-key="-"
+              >
+                -
+              </button>
+              <button
+                class="virtual-key px-4 py-2 bg-[#292B73] text-white rounded hover:opacity-80"
+                data-key=" "
+              >
+                空格
+              </button>
+              <button
+                id="deleteKey"
+                class="px-4 py-2 bg-red-500 text-white rounded hover:opacity-80"
+              >
+                ⌫
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="playlist" class="text-xl text-center h-5"></div>
+
+        <div class="flex justify-center mt-8 space-x-3">
+          <button
+            id="btnMorse"
+            class="px-5 py-2.5 bg-[#292B73] text-white text-base tracking-wider"
+          >
+            翻譯成密碼
+          </button>
+          <button
+            id="btnEng"
+            class="px-5 py-2.5 bg-[#FFB637] text-[#292B73] text-base tracking-wider"
+          >
+            翻譯回來
+          </button>
+          <button
+            id="btnPlay"
+            class="px-5 py-2.5 bg-white border-2 border-[#292B73] text-base tracking-wider"
+          >
+            播放
+          </button>
+        </div>
+
+        <audio
+          id="shortSound"
+          src="https://2017.awiclass.monoame.com/audio/morse/short.mp3"
+        ></audio>
+        <audio
+          id="longSound"
+          src="https://2017.awiclass.monoame.com/audio/morse/long.mp3"
+        ></audio>
+      </div>
+
+      <!-- 右側面板 -->
+      <div
+        class="md:flex-[4] bg-[#FFB637] p-8 shadow-lg rounded-lg text-[#292B73]"
+      >
+        <h3 class="text-center font-normal text-[22px]">翻譯清單</h3>
+        <hr class="border-b-[1.5px] border-[#292B73] my-4" />
+        <ul id="translist" class="h-[450px] flex flex-col flex-wrap">
+          <!-- JavaScript 會動態填入內容 -->
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // 摩斯密碼對照表
+      const morseCode =
+        "A;.-|B;-...|C;-.-.|D;-..|E;.|F;..-.|G;--.|H;....|I;..|J;.---|K;-.-|L;.-..|M;--|N;-.|O;---|P;.--.|Q;--.-|R;.-.|S;...|T;-|U;..-|V;...-|W;.--|X;-..-|Y;-.--|Z;--..|/;-..-.|1;.----|2;..---|3;...--|4;....-|5;.....|6;-....|7;--...|8;---..|9;----.|0;-----";
+
+      // DOM 元素
+      const elements = {
+        input: document.getElementById("input"),
+        output: document.getElementById("output"),
+        btnMorse: document.getElementById("btnMorse"),
+        btnEng: document.getElementById("btnEng"),
+        btnPlay: document.getElementById("btnPlay"),
+        playlist: document.getElementById("playlist"),
+        translist: document.getElementById("translist"),
+        shortSound: document.getElementById("shortSound"),
+        longSound: document.getElementById("longSound"),
+        symbolArrow: document.getElementById("symbolArrow"),
+      };
+
+      // 初始化音量
+      elements.shortSound.volume = 0.3;
+      elements.longSound.volume = 0.3;
+
+      // 建立翻譯清單
+      const morseList = morseCode.split("|").map((item) => item.split(";"));
+      morseList.forEach(([letter, code]) => {
+        const li = document.createElement("li");
+        li.textContent = `• ${letter}  ${code}`;
+        li.className = "mb-1.5 text-lg w-[30%] flex items-center";
+        elements.translist.appendChild(li);
+      });
+
+      // 輔助函數
+      function findCode(letter) {
+        const found = morseList.find((item) => item[0] === letter);
+        return found ? found[1] : letter;
+      }
+
+      function findLetter(code) {
+        const found = morseList.find((item) => item[1] === code);
+        return found ? found[0] : code;
+      }
+
+      function translateToMorse(text) {
+        return text
+          .toUpperCase()
+          .split("")
+          .map((char) => findCode(char))
+          .join(" ");
+      }
+
+      function translateToEng(text) {
+        return text
+          .split(" ")
+          .map((code) => findLetter(code))
+          .join("");
+      }
+
+      // 動畫效果
+      function animateBackground(element) {
+        element.style.backgroundColor = "#292B73";
+        element.style.transition = "background-color 0.5s";
+
+        setTimeout(() => {
+          element.style.backgroundColor = "transparent";
+        }, 50);
+      }
+
+      function rotateArrow() {
+        elements.symbolArrow.style.transform = "rotate(360deg)";
+        setTimeout(() => {
+          elements.symbolArrow.style.transform = "rotate(0deg)";
+        }, 500);
+      }
+
+      // 事件監聽器
+      elements.btnMorse.addEventListener("click", () => {
+        elements.output.value = translateToMorse(elements.input.value);
+        animateBackground(elements.output);
+        rotateArrow();
+      });
+
+      elements.btnEng.addEventListener("click", () => {
+        elements.input.value = translateToEng(elements.output.value);
+        animateBackground(elements.input);
+        rotateArrow();
+      });
+
+      elements.input.addEventListener("keyup", (e) => {
+        const newText = e.target.value.toUpperCase().replace(/\s/g, "");
+        e.target.value = newText;
+      });
+
+      elements.input.addEventListener("keyup", (e) => {
+        // 只保留英文字母、數字和斜線
+        const newText = e.target.value.toUpperCase().replace(/[^A-Z0-9/]/g, "");
+        e.target.value = newText;
+      });
+
+      elements.output.addEventListener("keyup", (e) => {
+        // 只保留摩斯密碼允許的字符：點(.)、橫線(-)和空格
+        const newText = e.target.value.replace(/[^.\- ]/g, "");
+        e.target.value = newText;
+      });
+
+      // 鍵盤切換功能
+      const keyboardToggle = document.getElementById("keyboardToggle");
+      const virtualKeyboard = document.getElementById("virtualKeyboard");
+      let isKeyboardVisible = false;
+
+      keyboardToggle.addEventListener("click", () => {
+        isKeyboardVisible = !isKeyboardVisible;
+        virtualKeyboard.classList.toggle("hidden");
+      });
+
+      // 點擊其他地方時關閉鍵盤
+      document.addEventListener("click", (e) => {
+        if (
+          !virtualKeyboard.contains(e.target) &&
+          !keyboardToggle.contains(e.target) &&
+          isKeyboardVisible
+        ) {
+          virtualKeyboard.classList.add("hidden");
+          isKeyboardVisible = false;
+        }
+      });
+
+      // 虛擬鍵盤功能
+      document.querySelectorAll(".virtual-key").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = button.getAttribute("data-key");
+          const cursorPos = elements.output.selectionStart;
+          const textBefore = elements.output.value.substring(0, cursorPos);
+          const textAfter = elements.output.value.substring(cursorPos);
+
+          elements.output.value = textBefore + key + textAfter;
+
+          // 更新游標位置
+          elements.output.selectionStart = cursorPos + key.length;
+          elements.output.selectionEnd = cursorPos + key.length;
+          elements.output.focus();
+        });
+      });
+
+      // 刪除按鈕功能
+      document.getElementById("deleteKey").addEventListener("click", () => {
+        const cursorPos = elements.output.selectionStart;
+        const textBefore = elements.output.value.substring(0, cursorPos - 1);
+        const textAfter = elements.output.value.substring(cursorPos);
+
+        elements.output.value = textBefore + textAfter;
+
+        // 更新游標位置
+        elements.output.selectionStart = cursorPos - 1;
+        elements.output.selectionEnd = cursorPos - 1;
+        elements.output.focus();
+      });
+
+      // 播放功能
+      async function play(texts, nowindex = 0) {
+        if (nowindex >= texts.length) {
+          elements.playlist.innerHTML = "";
+          return;
+        }
+
+        const word = texts[nowindex];
+        let delay = 300;
+
+        // 更新播放狀態顯示
+        const spans = elements.playlist.querySelectorAll("span");
+        spans.forEach((span) => span.classList.remove("text-[#FFB637]"));
+        if (spans[nowindex]) {
+          spans[nowindex].classList.add("text-[#FFB637]");
+        }
+
+        // 播放對應的聲音
+        if (word === ".") {
+          elements.shortSound.play();
+          delay = 300;
+        } else if (word === "-") {
+          elements.longSound.play();
+          delay = 500;
+        } else {
+          delay = 1000;
+        }
+
+        // 延遲播放下一個
+        setTimeout(() => play(texts, nowindex + 1), delay);
+      }
+
+      elements.btnPlay.addEventListener("click", () => {
+        const text = elements.output.value;
+        elements.playlist.innerHTML = text
+          .split("")
+          .map((char) => `<span>${char}</span>`)
+          .join("");
+        play(text);
+      });
+    </script>
+  </body>
+</html>
